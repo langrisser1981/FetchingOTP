@@ -8,14 +8,46 @@
 import SwiftUI
 
 struct ContentView: View {
+    @AppStorage("logStatus") var logStatus = false
+
+    @StateObject var coordinator = Coordinator()
+    @StateObject var otpModel = OTPViewModel()
+
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundColor(.accentColor)
-            Text("Hello, world!")
+        NavigationStack(path: $coordinator.path) {
+            VStack {
+                if logStatus == true {
+                    HomeView()
+                } else {
+                    LoginView()
+                }
+                /*
+                 Spacer()
+                 Button {
+                     fatalError("測試強制崩潰")
+                 } label: {
+                     Text("測試")
+                 }
+                  */
+            }
+            .onChange(of: otpModel.state) { state in
+                switch state {
+                case .signedIn(let user):
+                    print("\(user.phoneNumber.or(defaultValue: "無號碼")) :已登入")
+                    coordinator.goToHome()
+                case .verify:
+                    coordinator.goToVerification()
+                case .signedOut:
+                    coordinator.goToLogin()
+                }
+            }
+            .navigationDestination(for: Destination.self) { destination in
+                ViewFactory.viewForDestination(destination)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .padding()
+        .environmentObject(coordinator)
+        .environmentObject(otpModel)
     }
 }
 
